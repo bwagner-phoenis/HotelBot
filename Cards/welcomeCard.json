@@ -1,0 +1,29 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.0",
+  "body": [    
+    {
+      "type": "TextBlock",
+      "spacing": "medium",
+      "size": "large",
+      "weight": "bolder",
+      "text": "Welcome to our Hotel!",
+      "wrap": true,
+      "maxLines": 0
+    },
+    {
+      "type": "Image",
+      "url": "https://images.unsplash.com/photo-1582719508461-905c673771fd?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1825&q=80",
+      "size": "stretch"
+    },
+    {
+      "type": "TextBlock",
+      "size": "default",
+      "isSubtle": true,
+      "text": "This Bot will help you with booking your room. If you need help or don't know how to get started just Type \"Help\" or \"I need help\".",
+      "wrap": true,
+      "maxLines": 0
+    }
+  ]
+}
