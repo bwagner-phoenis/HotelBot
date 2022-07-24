@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using HotelBot.NLPModel;
@@ -28,6 +30,8 @@ public class RoomBookingDialog : BaseDialog
     private const string AllergiesMsgText = "Please enter all relevant allergies we need to be aware of.";
     private const string AgeVerificationMsgText = "Please verify that you are 18 or older.";
 
+    private const string NameMsgText = "Please gives us your name for the reservation.";
+    
     private const string ConfirmMsgText =
         "Here we have a summary of your booking. Please confirm that everything is correct or start again.";
 
@@ -80,6 +84,7 @@ public class RoomBookingDialog : BaseDialog
             ParkingLotRequiredStepAsync,
             PillowTypeStepAsync,
             AllergiesStepAsync,
+            NameQuestionStepAsync,
             AgeVerificationStepAsync,
             ConfirmStepAsync,
             FinalStepAsync
@@ -100,7 +105,7 @@ public class RoomBookingDialog : BaseDialog
     {
         var bookingDetails = (BookingDetails)stepContext.Options;
 
-        var luisResult = await _recognizer.RecognizeAsync<LuisResult>(stepContext.Context, cancellationToken);
+        var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
 
         _logger.LogDebug($"LUIS Result: {luisResult}");
 
@@ -168,16 +173,23 @@ public class RoomBookingDialog : BaseDialog
     {
         var bookingDetails = (BookingDetails)stepContext.Options;
 
-        var luisResult = await _recognizer.RecognizeAsync<LuisResult>(stepContext.Context, cancellationToken);
+        // var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
+        //
+        // if (luisResult.TopIntent().intent == HotelBotResult.Intent.With_Breakfast)
+        // {
+        //     bookingDetails.Breakfast = true;
+        //     return await stepContext.BeginDialogAsync(nameof(BreakfastDialog), bookingDetails.Arrival,
+        //         cancellationToken);
+        // }
+        //
+        // if (luisResult.TopIntent().intent == HotelBotResult.Intent.Without_Breakfast) bookingDetails.Breakfast = false;
 
-        if (luisResult?.TopIntent().intent == LuisResult.Intent.With_Breakfast)
+        bookingDetails.Breakfast = (bool)stepContext.Result;
+        if (bookingDetails.Breakfast.GetValueOrDefault())
         {
-            bookingDetails.Breakfast = true;
             return await stepContext.BeginDialogAsync(nameof(BreakfastDialog), bookingDetails.Arrival,
                 cancellationToken);
         }
-
-        if (luisResult?.TopIntent().intent == LuisResult.Intent.Without_Breakfast) bookingDetails.Breakfast = false;
 
         if (bookingDetails.Arrival == null || IsAmbiguous(bookingDetails.Arrival))
             return await stepContext.BeginDialogAsync(nameof(DateResolverDialog), bookingDetails.Arrival,
@@ -285,12 +297,28 @@ public class RoomBookingDialog : BaseDialog
             cancellationToken);
     }
 
-    private async Task<DialogTurnResult> AgeVerificationStepAsync(WaterfallStepContext stepContext,
+    private async Task<DialogTurnResult> NameQuestionStepAsync(WaterfallStepContext stepContext,
         CancellationToken cancellationToken)
     {
         var bookingDetails = (BookingDetails)stepContext.Options;
 
         bookingDetails.Allergies = (string)stepContext.Result;
+
+        if (!string.IsNullOrWhiteSpace(bookingDetails.Name))
+            return await stepContext.NextAsync(bookingDetails.Name, cancellationToken);
+
+        var promptMessage = MessageFactory.Text(NameMsgText, NameMsgText,
+            InputHints.ExpectingInput);
+        return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = promptMessage },
+            cancellationToken);
+    }
+    
+    private async Task<DialogTurnResult> AgeVerificationStepAsync(WaterfallStepContext stepContext,
+        CancellationToken cancellationToken)
+    {
+        var bookingDetails = (BookingDetails)stepContext.Options;
+
+        bookingDetails.Name = (string)stepContext.Result;
 
         if (bookingDetails.AgeVerified.HasValue)
             return await stepContext.NextAsync(bookingDetails.AgeVerified, cancellationToken);
@@ -327,7 +355,27 @@ public class RoomBookingDialog : BaseDialog
 
     private static bool IsAmbiguous(string timex)
     {
-        var timexProperty = new TimexProperty(timex);
+        CultureInfo[] cultures =
+        {
+            CultureInfo.CreateSpecificCulture("en-US"),
+            CultureInfo.CreateSpecificCulture("de-DE")
+        };
+
+        var dateValue = DateTime.MinValue;
+
+        foreach (var culture in cultures)
+        {
+            try
+            {
+                dateValue = DateTime.Parse(timex, culture);
+            }
+            catch (FormatException)
+            {
+                //ignore the format exception and continue with the next culture
+            }
+        }
+
+        var timexProperty = TimexProperty.FromDate(dateValue);
         return !timexProperty.Types.Contains(Constants.TimexTypes.Definite);
     }
 }

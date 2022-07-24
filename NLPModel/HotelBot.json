@@ -2,10 +2,10 @@
   "luis_schema_version": "7.0.0",
   "intents": [
     {
-      "name": "Book a Room",
+      "name": "Booking",
       "features": [
         {
-          "modelName": "NumberOfGuests",
+          "modelName": "BookingRequest",
           "isRequired": false
         }
       ]
@@ -17,36 +17,53 @@
     {
       "name": "None",
       "features": []
-    },
-    {
-      "name": "Trip Date",
-      "features": []
-    },
-    {
-      "name": "With Breakfast",
-      "features": []
-    },
-    {
-      "name": "Without Breakfast",
-      "features": []
     }
   ],
   "entities": [
     {
-      "name": "EndDate",
-      "children": [],
-      "roles": [],
-      "features": []
-    },
-    {
-      "name": "NumberOfGuests",
-      "children": [],
-      "roles": [],
-      "features": []
-    },
-    {
-      "name": "StartDate",
-      "children": [],
+      "name": "BookingRequest",
+      "children": [
+        {
+          "name": "Adults",
+          "children": [],
+          "features": [
+            {
+              "modelName": "number",
+              "isRequired": false
+            }
+          ]
+        },
+        {
+          "name": "Children",
+          "children": [],
+          "features": [
+            {
+              "modelName": "number",
+              "isRequired": false
+            }
+          ]
+        },
+        {
+          "name": "Nights",
+          "children": [],
+          "features": [
+            {
+              "modelName": "number",
+              "isRequired": false
+            }
+          ]
+        },
+        {
+          "name": "Arrival",
+          "children": [],
+          "features": [
+            {
+              "modelName": "datetimeV2",
+              "isRequired": false
+            }
+          ]
+        }
+      ],
       "roles": [],
       "features": []
     }
@@ -54,27 +71,41 @@
   "hierarchicals": [],
   "composites": [],
   "closedLists": [],
-  "prebuiltEntities": [],
+  "prebuiltEntities": [
+    {
+      "name": "datetimeV2",
+      "roles": []
+    },
+    {
+      "name": "number",
+      "roles": []
+    }
+  ],
   "utterances": [
     {
-      "text": "book a meal in the morning for us",
-      "intent": "With Breakfast",
-      "entities": []
-    },
-    {
-      "text": "book a room for @numberofguests",
-      "intent": "Book a Room",
-      "entities": []
-    },
-    {
-      "text": "book a room for me please",
-      "intent": "Book a Room",
-      "entities": []
-    },
-    {
-      "text": "breakfast would be nice",
-      "intent": "With Breakfast",
-      "entities": []
+      "text": "a room for 2 adults and 3 children",
+      "intent": "Booking",
+      "entities": [
+        {
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 33,
+          "children": [
+            {
+              "entity": "Children",
+              "startPos": 24,
+              "endPos": 24,
+              "children": []
+            },
+            {
+              "entity": "Adults",
+              "startPos": 11,
+              "endPos": 11,
+              "children": []
+            }
+          ]
+        }
+      ]
     },
     {
       "text": "help",
@@ -87,41 +118,66 @@
       "entities": []
     },
     {
-      "text": "i don't need breakfast",
-      "intent": "Without Breakfast",
+      "text": "i need a room",
+      "intent": "Booking",
       "entities": []
     },
     {
-      "text": "i like to book a room",
-      "intent": "Book a Room",
-      "entities": []
-    },
-    {
-      "text": "i like to book a room for @numberofguests people",
-      "intent": "Book a Room",
+      "text": "i need a room for 4 people",
+      "intent": "Booking",
       "entities": [
         {
-          "entity": "NumberOfGuests",
-          "startPos": 27,
-          "endPos": 40,
-          "children": []
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 25,
+          "children": [
+            {
+              "entity": "Adults",
+              "startPos": 18,
+              "endPos": 18,
+              "children": []
+            }
+          ]
         }
       ]
     },
     {
-      "text": "i like to sleep in",
-      "intent": "Without Breakfast",
-      "entities": []
+      "text": "i need a room for 4 people.",
+      "intent": "Booking",
+      "entities": [
+        {
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 25,
+          "children": [
+            {
+              "entity": "Adults",
+              "startPos": 18,
+              "endPos": 18,
+              "children": []
+            }
+          ]
+        }
+      ]
     },
     {
-      "text": "i need a room",
-      "intent": "Book a Room",
-      "entities": []
-    },
-    {
-      "text": "i need a room for @numberofguests",
-      "intent": "Book a Room",
-      "entities": []
+      "text": "i need a room for 5",
+      "intent": "Booking",
+      "entities": [
+        {
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 18,
+          "children": [
+            {
+              "entity": "Adults",
+              "startPos": 18,
+              "endPos": 18,
+              "children": []
+            }
+          ]
+        }
+      ]
     },
     {
       "text": "i need help",
@@ -129,65 +185,78 @@
       "entities": []
     },
     {
-      "text": "i want to eat something in the morning",
-      "intent": "With Breakfast",
-      "entities": []
+      "text": "i want a room for 5 people",
+      "intent": "Booking",
+      "entities": [
+        {
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 25,
+          "children": [
+            {
+              "entity": "Adults",
+              "startPos": 18,
+              "endPos": 18,
+              "children": []
+            }
+          ]
+        }
+      ]
     },
     {
       "text": "i want to stay at your hotel",
-      "intent": "Book a Room",
+      "intent": "Booking",
       "entities": []
     },
     {
-      "text": "i want to stay from @startdate to @enddate",
-      "intent": "Trip Date",
+      "text": "i want to stay from 25.02.2022 with 3 adults",
+      "intent": "Booking",
       "entities": [
         {
-          "entity": "StartDate",
-          "startPos": 20,
-          "endPos": 29,
-          "children": []
-        },
-        {
-          "entity": "EndDate",
-          "startPos": 35,
-          "endPos": 41,
-          "children": []
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 43,
+          "children": [
+            {
+              "entity": "Adults",
+              "startPos": 36,
+              "endPos": 36,
+              "children": []
+            },
+            {
+              "entity": "Arrival",
+              "startPos": 20,
+              "endPos": 29,
+              "children": []
+            }
+          ]
         }
       ]
     },
     {
-      "text": "i want to stay from monday to friday",
-      "intent": "Trip Date",
+      "text": "one room for two nights from friday please",
+      "intent": "Booking",
       "entities": [
         {
-          "entity": "StartDate",
-          "startPos": 20,
-          "endPos": 25,
-          "children": []
-        },
-        {
-          "entity": "EndDate",
-          "startPos": 30,
-          "endPos": 35,
-          "children": []
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 34,
+          "children": [
+            {
+              "entity": "Arrival",
+              "startPos": 29,
+              "endPos": 34,
+              "children": []
+            },
+            {
+              "entity": "Nights",
+              "startPos": 13,
+              "endPos": 15,
+              "children": []
+            }
+          ]
         }
       ]
-    },
-    {
-      "text": "i'd like to book room",
-      "intent": "Book a Room",
-      "entities": []
-    },
-    {
-      "text": "no breakfast please",
-      "intent": "Without Breakfast",
-      "entities": []
-    },
-    {
-      "text": "nothing to eat in the morning please",
-      "intent": "Without Breakfast",
-      "entities": []
     },
     {
       "text": "please help",
@@ -200,24 +269,35 @@
       "entities": []
     },
     {
-      "text": "please no breakfast",
-      "intent": "Without Breakfast",
-      "entities": []
-    },
-    {
-      "text": "we don't need breakfast",
-      "intent": "Without Breakfast",
-      "entities": []
-    },
-    {
-      "text": "with breakfast",
-      "intent": "With Breakfast",
-      "entities": []
-    },
-    {
-      "text": "with breakfast please",
-      "intent": "With Breakfast",
-      "entities": []
+      "text": "we want to stay for 5 nights from 31.01.2022 with 2 adults",
+      "intent": "Booking",
+      "entities": [
+        {
+          "entity": "BookingRequest",
+          "startPos": 0,
+          "endPos": 57,
+          "children": [
+            {
+              "entity": "Adults",
+              "startPos": 50,
+              "endPos": 50,
+              "children": []
+            },
+            {
+              "entity": "Nights",
+              "startPos": 20,
+              "endPos": 20,
+              "children": []
+            },
+            {
+              "entity": "Arrival",
+              "startPos": 34,
+              "endPos": 43,
+              "children": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "versionId": "0.1",
