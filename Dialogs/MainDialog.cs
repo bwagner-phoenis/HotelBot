@@ -66,28 +66,21 @@ public class MainDialog : ComponentDialog
         //var luisResult = await _recognizer.RecognizeAsync<FlightBooking>(stepContext.Context, cancellationToken);
         var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
 
-        Logger.LogDebug($"LUIS Result: {luisResult}");
-
         switch (luisResult.TopIntent().intent)
         {
             case HotelBotResult.Intent.Booking:
 
-                var bookingDetails = new BookingDetails();
+                HotelBotResult._Entities.BookingRequestClass? request  = null;
+                
+                if(luisResult?.Entities?.BookingRequest is not null)
+                    request = luisResult.Entities.BookingRequest.FirstOrDefault();
 
-                var request = luisResult.Entities.BookingRequest.FirstOrDefault();
-                if (request is not null)
-                {
-                    // Initialize BookingDetails with any entities we may have found in the response.
-                    bookingDetails.NumberOfGuests = int.Parse(request.Adults?.FirstOrDefault() ?? "0");
-                    bookingDetails.NumberOfChildren = int.Parse(request.Children?.FirstOrDefault() ?? "-1");
-                    bookingDetails.Arrival = request.Arrival?.FirstOrDefault();
-                    bookingDetails.NumberOfNights = int.Parse(request.Nights?.FirstOrDefault() ?? "0");
-                }
-
+                var bookingDetails = new BookingDetails(request);
+                
                 // Run the BookingDialog giving it whatever details we have from the LUIS call, it will fill out the remainder.
                 return await stepContext.BeginDialogAsync(nameof(RoomBookingDialog), bookingDetails, cancellationToken);
 
-            case HotelBotResult.Intent.Help:
+            case HotelBotResult.Intent.Utilities_Help:
                 // We haven't implemented the GetWeatherDialog so we just display a TO-DO message.
                 var getWeatherMessageText = "TODO: output some helpfull messages";
                 var getWeatherMessage = MessageFactory.Text(getWeatherMessageText, getWeatherMessageText,

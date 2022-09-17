@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
@@ -16,23 +17,8 @@ public class BreakfastDialog : BaseDialog
     private const string HotDrinkMsgText = "What kind of hot drink do you like?" + ControlChars.NewLine +
                                            "If you don't know or like to try different options please choose\"I will decide then\".";
 
-    private readonly IList<Choice> _breakfastChoices = ChoiceFactory.ToChoices(new List<string>
-    {
-        "Continental",
-        "Full English",
-        "Traditional",
-        "Vegan",
-        "Buffet"
-    });
-
-    private readonly IList<Choice> _hotDrinkChoices = ChoiceFactory.ToChoices(new List<string>
-    {
-        "Coffee",
-        "Black Tea",
-        "Green Tea",
-        "Hot Chocolate",
-        "I will decide then"
-    });
+    private readonly IList<Choice> _breakfastChoices = ChoiceFactory.ToChoices(Enum.GetNames(typeof(BreakfastTypes)));
+    private readonly IList<Choice> _hotDrinkChoices = ChoiceFactory.ToChoices(Enum.GetNames(typeof(MorningDrinks)));
 
     public BreakfastDialog(string id = nameof(BreakfastDialog))
         : base(id)
@@ -52,8 +38,6 @@ public class BreakfastDialog : BaseDialog
     private async Task<DialogTurnResult> InitialStepAsync(WaterfallStepContext stepContext,
         CancellationToken cancellationToken)
     {
-        var timex = (string)stepContext.Options;
-
         var promptMessage = MessageFactory.Text(BreakfastTypeMsgText, BreakfastTypeMsgText, InputHints.ExpectingInput);
 
         return await stepContext.PromptAsync("ChoicePrompt", new PromptOptions
@@ -67,7 +51,11 @@ public class BreakfastDialog : BaseDialog
     private async Task<DialogTurnResult> CoffeeOrTeaStepAsync(WaterfallStepContext stepContext,
         CancellationToken cancellationToken)
     {
-        var timex = (string)stepContext.Options;
+        var bookingDetails = (BreakfastDetails)stepContext.Options;
+
+        var tryParse = Enum.TryParse<BreakfastTypes>(((FoundChoice)stepContext.Result).Value, out var type);
+
+        bookingDetails.BreakfastType = type;
 
         var promptMessage = MessageFactory.Text(HotDrinkMsgText, HotDrinkMsgText, InputHints.ExpectingInput);
 
@@ -82,7 +70,11 @@ public class BreakfastDialog : BaseDialog
     private async Task<DialogTurnResult> FinalStepAsync(WaterfallStepContext stepContext,
         CancellationToken cancellationToken)
     {
-        var timex = ((List<DateTimeResolution>)stepContext.Result)[0].Timex;
-        return await stepContext.EndDialogAsync(timex, cancellationToken);
+        var bookingDetails = (BreakfastDetails)stepContext.Options;
+        var tryParse = Enum.TryParse<MorningDrinks>(((FoundChoice)stepContext.Result).Value, out var drink);
+
+        bookingDetails.MorningDrink = drink;
+        
+        return await stepContext.EndDialogAsync(bookingDetails, cancellationToken);
     }
 }

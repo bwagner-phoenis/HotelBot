@@ -22,17 +22,35 @@ namespace HotelBot.NLPModel
 
         public enum Intent {
             Booking,
-            Help,
-            None
+            None,
+            Utilities_Cancel,
+            Utilities_Confirm,
+            Utilities_Escalate,
+            Utilities_FinishTask,
+            Utilities_GoBack,
+            Utilities_Help,
+            Utilities_Reject,
+            Utilities_Repeat,
+            Utilities_SelectAny,
+            Utilities_SelectItem,
+            Utilities_SelectNone,
+            Utilities_ShowNext,
+            Utilities_ShowPrevious,
+            Utilities_StartOver,
+            Utilities_Stop
         };
         [JsonProperty("intents")]
         public Dictionary<Intent, IntentScore> Intents;
 
         public class _Entities
         {
+            // Simple entities
+            public string[] Utilities_DirectionalReference;
+
             // Built-in entities
             public DateTimeSpec[] datetime;
             public double[] number;
+            public double[] ordinal;
 
 
             // Composites
@@ -62,8 +80,10 @@ namespace HotelBot.NLPModel
                 public InstanceData[] BookingRequest;
                 public InstanceData[] Children;
                 public InstanceData[] Nights;
+                public InstanceData[] Utilities_DirectionalReference;
                 public InstanceData[] datetime;
                 public InstanceData[] number;
+                public InstanceData[] ordinal;
             }
             [JsonProperty("$instance")]
             public _Instance _instance;

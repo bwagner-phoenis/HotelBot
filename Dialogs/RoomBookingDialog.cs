@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using HotelBot.NLPModel;
+using Microsoft.Azure.CognitiveServices.Language.LUIS.Runtime.Models;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.AI.Luis;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Dialogs.Choices;
 using Microsoft.Bot.Schema;
@@ -173,24 +175,16 @@ public class RoomBookingDialog : BaseDialog
     {
         var bookingDetails = (BookingDetails)stepContext.Options;
 
-        // var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
-        //
-        // if (luisResult.TopIntent().intent == HotelBotResult.Intent.With_Breakfast)
-        // {
-        //     bookingDetails.Breakfast = true;
-        //     return await stepContext.BeginDialogAsync(nameof(BreakfastDialog), bookingDetails.Arrival,
-        //         cancellationToken);
-        // }
-        //
-        // if (luisResult.TopIntent().intent == HotelBotResult.Intent.Without_Breakfast) bookingDetails.Breakfast = false;
+        var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
 
-        bookingDetails.Breakfast = (bool)stepContext.Result;
-        if (bookingDetails.Breakfast.GetValueOrDefault())
+        if (luisResult.TopIntent().intent == HotelBotResult.Intent.Utilities_Confirm)
         {
-            return await stepContext.BeginDialogAsync(nameof(BreakfastDialog), bookingDetails.Arrival,
-                cancellationToken);
+            bookingDetails.Breakfast = new BreakfastDetails();
+            
+            await stepContext.BeginDialogAsync(nameof(BreakfastDialog), bookingDetails.Breakfast,
+                cancellationToken);    
         }
-
+        
         if (bookingDetails.Arrival == null || IsAmbiguous(bookingDetails.Arrival))
             return await stepContext.BeginDialogAsync(nameof(DateResolverDialog), bookingDetails.Arrival,
                 cancellationToken);
