@@ -48,7 +48,8 @@ public class DialogBotBase<T> : ActivityHandler
         //Logger.LogInformation("Running dialog with Message Activity.");
 
         // Run the Dialog with the new message Activity.
-        await Dialog.RunAsync(turnContext, ConversationState.CreateProperty<DialogState>("DialogState"),
+        await Dialog.RunAsync(turnContext, 
+            ConversationState.CreateProperty<DialogState>("DialogState"),
             cancellationToken);
     }
 
