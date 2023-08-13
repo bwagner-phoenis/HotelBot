@@ -78,7 +78,9 @@ public class MainDialog : ComponentDialog
                 var bookingDetails = new BookingDetails(request);
                 
                 // Run the BookingDialog giving it whatever details we have from the LUIS call, it will fill out the remainder.
-                return await stepContext.BeginDialogAsync(nameof(RoomBookingDialog), bookingDetails, cancellationToken);
+                var result =  await stepContext.BeginDialogAsync(nameof(RoomBookingDialog), bookingDetails, cancellationToken);
+                
+                return result;
 
             case HotelBotResult.Intent.Utilities_Help:
                 // We haven't implemented the GetWeatherDialog so we just display a TO-DO message.

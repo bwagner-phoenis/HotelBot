@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using HotelBot.NLPModel;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Azure.CognitiveServices.Language.LUIS.Runtime.Models;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.AI.Luis;
@@ -27,17 +28,20 @@ public class RoomBookingDialog : BaseDialog
     private const string ParkingLotRequiredMsgText = "Will you need a reserved parking lot in front of the hotel?";
 
     private const string PillowTypeMsgText =
-        $"We have variaty of pillows available for you.{ControlChars.NewLine}Please choose the type you like.";
+        $"We have a variaty of pillows available for you to choose.{ControlChars.NewLine}Please select the type you like.";
 
-    private const string AllergiesMsgText = "Please enter all relevant allergies we need to be aware of.";
-    private const string AgeVerificationMsgText = "Please verify that you are 18 or older.";
+    private const string AllergiesMsgText = "Please enter all relevant food or other allergies we need to be aware of.";
+    private const string AgeVerificationMsgText = "Please verify that you are atleast 18 years old.";
 
-    private const string NameMsgText = "Please gives us your name for the reservation.";
-    
+    private const string NameMsgText = "Please gives us your full name for the reservation.";
+
     private const string ConfirmMsgText =
-        "Here we have a summary of your booking. Please confirm that everything is correct or start again.";
+        "Here we have a summary of your booking. Please confirm that everything is correct or say \"start again\".";
 
-    private const string FinalMsgText = "Thank you for your booking!";
+    private const string FinalMsgText = $"Thank you for your booking!{ControlChars.NewLine}" +
+                                        $"A request is placed in our system and after a short check from an service desk employee a quote will be send to you for confirmation.{ControlChars.NewLine}" +
+                                        $"Your reservation is valid for 7 days and you can always call us if something is wrong or needs to be changed.{ControlChars.NewLine}" +
+                                        $"Thank you for using our chatbot service and we are looking forward to welcome you in our hotel!";
 
     private readonly ILogger<RoomBookingDialog> _logger;
 
@@ -58,6 +62,14 @@ public class RoomBookingDialog : BaseDialog
         "Gel foam"
     });
 
+    private const string BreakfastTypeMsgText = "What kind of breakfast do you like?";
+
+    private const string HotDrinkMsgText = "What kind of hot drink do you like?" + ControlChars.NewLine +
+                                           "If you don't know or like to try different options please choose\"I will decide then\".";
+
+    private readonly IList<Choice> _breakfastChoices = ChoiceFactory.ToChoices(Enum.GetNames(typeof(BreakfastTypes)));
+    private readonly IList<Choice> _hotDrinkChoices = ChoiceFactory.ToChoices(Enum.GetNames(typeof(MorningDrinks)));
+
     private readonly HotelRecognizer _recognizer;
 
     public RoomBookingDialog(HotelRecognizer recognizer, ILogger<RoomBookingDialog> logger)
@@ -73,13 +85,14 @@ public class RoomBookingDialog : BaseDialog
         AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
         //Add custom Dialogs for special handlings
         AddDialog(new DateResolverDialog());
-        AddDialog(new BreakfastDialog());
         //Create the main Dialog
         AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
         {
             NumberOfGuestStepAsync,
             NumberOfChildrenStepAsync,
             BreakfastStepAsync,
+            BreakfastChoiceStepAsync,
+            CoffeeOrTeaStepAsync,
             ArrivalDateStepAsync,
             NumberOfNightsStepAsync,
             PaymentMethodStepAsync,
@@ -164,6 +177,62 @@ public class RoomBookingDialog : BaseDialog
             cancellationToken);
     }
 
+    private async Task<DialogTurnResult> BreakfastChoiceStepAsync(WaterfallStepContext stepContext,
+        CancellationToken cancellationToken)
+    {
+        var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
+
+        _logger.LogDebug($"LUIS Result: {luisResult}");
+
+        if (luisResult.TopIntent().intent == HotelBotResult.Intent.Utilities_Reject)
+        {
+            var bookingDetails = (BookingDetails)stepContext.Options;
+            bookingDetails.Breakfast = new BreakfastDetails()
+            {
+                BreakfastType = BreakfastTypes.None,
+                MorningDrink = MorningDrinks.None
+            };
+
+            return await stepContext.NextAsync(bookingDetails, cancellationToken);
+        }
+
+        var promptMessage =
+            MessageFactory.Text(BreakfastTypeMsgText, BreakfastTypeMsgText, InputHints.ExpectingInput);
+        return await stepContext.PromptAsync("ChoicePrompt", new PromptOptions
+        {
+            Prompt = promptMessage,
+            Choices = _breakfastChoices,
+            Style = ListStyle.HeroCard
+        }, cancellationToken);
+    }
+
+    private async Task<DialogTurnResult> CoffeeOrTeaStepAsync(WaterfallStepContext stepContext,
+        CancellationToken cancellationToken)
+    {
+        var bookingDetails = (BookingDetails)stepContext.Options;
+
+        if (bookingDetails.Breakfast?.BreakfastType == BreakfastTypes.None)
+        {
+            return await stepContext.NextAsync(bookingDetails, cancellationToken);
+        }
+
+        Enum.TryParse<BreakfastTypes>(((FoundChoice)stepContext.Result).Value, out var type);
+
+        bookingDetails.Breakfast = new BreakfastDetails()
+        {
+            BreakfastType = type,
+        };
+
+        var promptMessage = MessageFactory.Text(HotDrinkMsgText, HotDrinkMsgText, InputHints.ExpectingInput);
+
+        return await stepContext.PromptAsync("ChoicePrompt", new PromptOptions
+        {
+            Prompt = promptMessage,
+            Choices = _hotDrinkChoices,
+            Style = ListStyle.HeroCard
+        }, cancellationToken);
+    }
+
     /// <summary>
     ///     Step 4: Get the Arrival date
     /// </summary>
@@ -175,16 +244,18 @@ public class RoomBookingDialog : BaseDialog
     {
         var bookingDetails = (BookingDetails)stepContext.Options;
 
-        var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
-
-        if (luisResult.TopIntent().intent == HotelBotResult.Intent.Utilities_Confirm)
+        if (stepContext.Result is MorningDrinks)
         {
-            bookingDetails.Breakfast = new BreakfastDetails();
-            
-            await stepContext.BeginDialogAsync(nameof(BreakfastDialog), bookingDetails.Breakfast,
-                cancellationToken);    
+            Enum.TryParse<MorningDrinks>(((FoundChoice)stepContext.Result).Value, out var type);
+
+            bookingDetails.Breakfast ??= new BreakfastDetails()
+            {
+                BreakfastType = BreakfastTypes.None,
+            };
+
+            bookingDetails.Breakfast.MorningDrink = type;
         }
-        
+
         if (bookingDetails.Arrival == null || IsAmbiguous(bookingDetails.Arrival))
             return await stepContext.BeginDialogAsync(nameof(DateResolverDialog), bookingDetails.Arrival,
                 cancellationToken);
@@ -306,7 +377,7 @@ public class RoomBookingDialog : BaseDialog
         return await stepContext.PromptAsync("TextPrompt", new PromptOptions { Prompt = promptMessage },
             cancellationToken);
     }
-    
+
     private async Task<DialogTurnResult> AgeVerificationStepAsync(WaterfallStepContext stepContext,
         CancellationToken cancellationToken)
     {
@@ -333,6 +404,7 @@ public class RoomBookingDialog : BaseDialog
         var summaryMsg = ConfirmMsgText + ControlChars.NewLine + bookingDetails;
         var promptMessage = MessageFactory.Text(summaryMsg, summaryMsg,
             InputHints.ExpectingInput);
+
         return await stepContext.PromptAsync(nameof(ConfirmPrompt), new PromptOptions { Prompt = promptMessage },
             cancellationToken);
     }
@@ -343,7 +415,9 @@ public class RoomBookingDialog : BaseDialog
         if (!(bool)stepContext.Result) return await stepContext.EndDialogAsync(null, cancellationToken);
 
         var bookingDetails = (BookingDetails)stepContext.Options;
-
+        var finalActivity = MessageFactory.Text(FinalMsgText, FinalMsgText, InputHints.IgnoringInput);
+        
+        await stepContext.Context.SendActivityAsync(finalActivity, cancellationToken);
         return await stepContext.EndDialogAsync(bookingDetails, cancellationToken);
     }
 
