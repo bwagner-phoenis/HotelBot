@@ -8,6 +8,9 @@ using Microsoft.Recognizers.Text.DataTypes.TimexExpression;
 
 namespace HotelBot.Dialogs;
 
+/// <summary>
+/// Dialog to resolve date values
+/// </summary>
 public class DateResolverDialog : BaseDialog
 {
     private const string PromptMsgText = "When would you like to travel?";
@@ -15,15 +18,14 @@ public class DateResolverDialog : BaseDialog
     private const string RepromptMsgText =
         "I'm sorry, to make your booking please enter a full travel date including Day Month and Year.";
 
-    public DateResolverDialog(string id = nameof(DateResolverDialog))
-        : base(id)
+    public DateResolverDialog(HotelRecognizer recognizer)
+        : base(nameof(DateResolverDialog), recognizer)
     {
         AddDialog(new DateTimePrompt(nameof(DateTimePrompt), DateTimePromptValidator));
-        AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
-        {
+        AddDialog(new WaterfallDialog(nameof(WaterfallDialog), [
             InitialStepAsync,
             FinalStepAsync
-        }));
+        ]));
 
         // The initial child Dialog to run.
         InitialDialogId = nameof(WaterfallDialog);

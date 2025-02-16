@@ -10,9 +10,11 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.AI.Luis;
+using Newtonsoft.Json.Converters;
+
 namespace HotelBot.NLPModel
 {
-    public partial class HotelBotResult: IRecognizerConvert
+    public partial class HotelBotResult7: IRecognizerConvert
     {
         [JsonProperty("text")]
         public string Text;
@@ -20,23 +22,39 @@ namespace HotelBot.NLPModel
         [JsonProperty("alteredText")]
         public string AlteredText;
 
+        [JsonConverter(typeof(StringEnumConverter))]  
         public enum Intent {
             Booking,
             None,
+            [JsonProperty("Utilities.Cancel")]
             Utilities_Cancel,
+            [JsonProperty("Utilities.Confirm")]
             Utilities_Confirm,
+            [JsonProperty("Utilities.Escalate")]
             Utilities_Escalate,
+            [JsonProperty("Utilities.FinishTask")]
             Utilities_FinishTask,
+            [JsonProperty("Utilities.Goback")]
             Utilities_GoBack,
+            [JsonProperty("Utilities.Help")]
             Utilities_Help,
+            [JsonProperty("Utilities.Reject")]
             Utilities_Reject,
+            [JsonProperty("Utilities.Repeat")]
             Utilities_Repeat,
+            [JsonProperty("Utilities.SelectAny")]
             Utilities_SelectAny,
+            [JsonProperty("Utilities.SelectItem")]
             Utilities_SelectItem,
+            [JsonProperty("Utilities.SelectNone")]
             Utilities_SelectNone,
+            [JsonProperty("Utilities.ShowNext")]
             Utilities_ShowNext,
+            [JsonProperty("Utilities.ShowPrevious")]
             Utilities_ShowPrevious,
+            [JsonProperty("Utilities.StartOver")]
             Utilities_StartOver,
+            [JsonProperty("Utilities.Stop")]
             Utilities_Stop
         };
         [JsonProperty("intents")]

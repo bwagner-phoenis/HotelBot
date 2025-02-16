@@ -1,20 +1,18 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-//
-// Generated with Bot Builder V4 SDK Template for Visual Studio CoreBot v4.13.2
-
-using Microsoft.Bot.Builder.Integration.AspNet.Core;
+﻿using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Builder.TraceExtensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace HotelBot
+namespace HotelBot;
+
+/// <summary>
+/// Base adapter for turn handling with a standardized error handling
+/// </summary>
+public class AdapterWithErrorHandler : BotFrameworkHttpAdapter
 {
-    public class AdapterWithErrorHandler : BotFrameworkHttpAdapter
+    public AdapterWithErrorHandler(IConfiguration configuration, ILogger<BotFrameworkHttpAdapter> logger)
+        : base(configuration, logger)
     {
-        public AdapterWithErrorHandler(IConfiguration configuration, ILogger<BotFrameworkHttpAdapter> logger)
-            : base(configuration, logger)
-        {
             OnTurnError = async (turnContext, exception) =>
             {
                 // Log any leaked exception from the application.
@@ -28,5 +26,4 @@ namespace HotelBot
                 await turnContext.TraceActivityAsync("OnTurnError Trace", exception.Message, "https://www.botframework.com/schemas/error", "TurnError");
             };
         }
-    }
 }

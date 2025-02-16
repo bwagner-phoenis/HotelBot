@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using HotelBot.NLPModel;
+﻿using System.Text;
 
 namespace HotelBot;
 
@@ -10,36 +7,73 @@ public class BookingDetails
     /// <summary>
     /// Initialize a new BookingDetails class and if a valid result is provided, fill the finds from the result.
     /// </summary>
-    /// <param name="request"></param>
-    public BookingDetails(HotelBotResult._Entities.BookingRequestClass? request)
+    /// <param name="persons"></param>
+    public BookingDetails(int persons)
     {
-        if (request is null) return;
-
         // Initialize BookingDetails with any entities we may have found in the response.
-        NumberOfGuests = int.Parse(request.Adults?.FirstOrDefault() ?? "0");
-        NumberOfChildren = int.Parse(request.Children?.FirstOrDefault() ?? "-1");
-        Arrival = request.Arrival?.FirstOrDefault();
-        NumberOfNights = int.Parse(request.Nights?.FirstOrDefault() ?? "0");
+        NumberOfGuests = persons;
     }
 
+    /// <summary>
+    /// Name of the guest making the reservation
+    /// </summary>
     public string Name { get; set; } = "";
+    
+    /// <summary>
+    /// Total number of guests including children
+    /// </summary>
     public int NumberOfGuests { get; set; }
+    
+    /// <summary>
+    /// Breakfast Details like the drink choice are stored here
+    /// </summary>
     public BreakfastDetails? Breakfast { get; set; }
+    
+    /// <summary>
+    /// Arrival Date and Time 
+    /// </summary>
     public string? Arrival { get; set; } = null!;
 
     /// <summary>
-    ///     Number of Children under 16 that are part of the NumberOfGuests value.
-    ///     The Default Value is set to -1 to account for 0 children.
+    /// Number of Children under 16 that are part of the NumberOfGuests value.
+    /// The Default Value is set to -1 to account for 0 children.
     /// </summary>
     public int NumberOfChildren { get; set; } = -1;
 
+    /// <summary>
+    /// Number of nights the guests will be staying, counting from arrival
+    /// </summary>
     public int NumberOfNights { get; set; }
+    
+    /// <summary>
+    /// Payment method chosen by the user making the request 
+    /// </summary>
     public string PaymentMethod { get; set; } = null!;
+    
+    /// <summary>
+    /// Is a reserved parking lot required?
+    /// </summary>
     public bool? ParkingLot { get; set; }
+    
+    /// <summary>
+    /// Chosen pillow type the guests like
+    /// </summary>
     public string PillowType { get; set; } = null!;
+    
+    /// <summary>
+    /// Any known food allergies of the guests
+    /// </summary>
     public string Allergies { get; set; } = null!;
+    
+    /// <summary>
+    /// Is the age already verified?
+    /// </summary>
     public bool? AgeVerified { get; set; }
 
+    /// <summary>
+    /// Overload default method to print the booking information in a human friendly way.
+    /// </summary>
+    /// <returns></returns>
     public override string ToString()
     {
         var builder = new StringBuilder();

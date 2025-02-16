@@ -45,7 +45,7 @@ public class DialogBotBase<T> : ActivityHandler
     protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext,
         CancellationToken cancellationToken)
     {
-        //Logger.LogInformation("Running dialog with Message Activity.");
+        Logger.LogInformation("Running dialog with Message Activity.");
 
         // Run the Dialog with the new message Activity.
         await Dialog.RunAsync(turnContext, 
@@ -59,7 +59,6 @@ public class DialogBotBase<T> : ActivityHandler
         foreach (var member in membersAdded)
         {
             // Greet anyone that was not the target (recipient) of this message.
-            // To learn more about Adaptive Cards, see https://aka.ms/msbot-adaptivecards for more details.
             if (member.Id == turnContext.Activity.Recipient.Id) continue;
 
             var welcomeCard = CreateAdaptiveCardAttachment();

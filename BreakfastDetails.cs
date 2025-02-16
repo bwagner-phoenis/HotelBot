@@ -1,13 +1,27 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 
 namespace HotelBot;
 
+/// <summary>
+/// This object stores all relevant information regarding the breakfast choices
+/// </summary>
 public class BreakfastDetails
 {
+    /// <summary>
+    /// The type of breakfast buffet choice selected by the user.
+    /// None will indicate that no breakfast is booked
+    /// </summary>
     public BreakfastTypes BreakfastType { get; set; }
+    
+    /// <summary>
+    /// The preferred drink for the breakfast. If no breakfast is booked this will be None. 
+    /// </summary>
     public MorningDrinks MorningDrink { get; set; }
 
+    /// <summary>
+    /// Custom ToString Method to print the chosen combination of buffet and drink.
+    /// </summary>
+    /// <returns></returns>
     public override string ToString()
     {
         var builder = new StringBuilder();
@@ -23,6 +37,9 @@ public class BreakfastDetails
     }
 }
 
+/// <summary>
+/// Available breakfast options
+/// </summary>
 public enum BreakfastTypes
 {
     None,
@@ -33,6 +50,9 @@ public enum BreakfastTypes
     Buffet,
 }
 
+/// <summary>
+/// Extenstion class with a method to print a user friendly name
+/// </summary>
 public static class BreakfastTypesExtension
 {
     public static string ToDisplayName(this BreakfastTypes type) =>
@@ -47,6 +67,9 @@ public static class BreakfastTypesExtension
         };
 }
 
+/// <summary>
+/// Available drink options
+/// </summary>
 public enum MorningDrinks
 {
     None,
@@ -57,6 +80,9 @@ public enum MorningDrinks
     HotChocolate,
 }
 
+/// <summary>
+/// Extenstion class with a method to print a user friendly name
+/// </summary>
 public static class MorningDrinksExtension
 {
     public static string ToDisplayName(this MorningDrinks drink) =>

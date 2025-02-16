@@ -1,33 +1,47 @@
-﻿using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using HotelBot.NLPModel;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
+using System.Text.RegularExpressions;
 
 namespace HotelBot.Dialogs;
 
-public class MainDialog : ComponentDialog
+/// <summary>
+/// Main Dialog of the bot, from here the booking dialog will be started
+/// </summary>
+public partial class MainDialog : ComponentDialog
 {
+    [GeneratedRegex(@"\d+")]
+    private static partial Regex NumberRegex();
+
     private readonly HotelRecognizer _recognizer;
-    private readonly ILogger<MainDialog> Logger;
+    private readonly ILogger<MainDialog> _logger;
+
+    private const string HelpMessage =
+        "This Bot is designed to guide you through the process of booking a room in our hotel.\n\nTo start the booking process enter a prompt like **\"I need a room for 2 people\"**.\nIn the following dialog the bot will ask you further questions to gather the required information for the booking and to make your stay as pleasant as possible.\n\nIf you need help during the booking process you can type in **\"help\"**, or a related sentence, an you get assistance.";
+
+    private const string QuestionMessage =
+        "Here are some further information about our hotel:\n\n**Refunds**\nWe have a customer friendly refund policy. Ask and you shall recieve. What, when and how depends on our mood.\n\n**Room Availablity**\nAs long as this bot responds there are rooms available\n\n**Animals**\nPets are allowed as long as you clean up after them!\n\n**Sustainability**\nWe are a sustainable hotel and no matter how ofter you keep the towels on the floor we wash them only after you leave. To save water and stuff.";
+
+    private const string PromptMessage = "What else can I do for you?";
 
     public MainDialog(HotelRecognizer recognizer, RoomBookingDialog bookingDialog, ILogger<MainDialog> logger) : base(
         nameof(MainDialog))
     {
         _recognizer = recognizer;
-        Logger = logger;
+        _logger = logger;
 
         AddDialog(new TextPrompt(nameof(TextPrompt)));
         AddDialog(bookingDialog);
-        AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
-        {
+        AddDialog(new WaterfallDialog(nameof(WaterfallDialog), [
             IntroStepAsync,
-            ActStepAsync
-            //FinalStepAsync,
-        }));
+            ActStepAsync,
+            FinalStepAsync
+        ]));
 
         // The initial child Dialog to run.
         InitialDialogId = nameof(WaterfallDialog);
@@ -40,7 +54,7 @@ public class MainDialog : ComponentDialog
         {
             await stepContext.Context.SendActivityAsync(
                 MessageFactory.Text(
-                    "NOTE: LUIS is not configured. To enable all capabilities, add 'LuisAppId', 'LuisAPIKey' and 'LuisAPIHostName' to the appsettings.json file.",
+                    "NOTE: CLU is not configured. To enable all capabilities add the required information to the appsettings.json file.",
                     inputHint: InputHints.IgnoringInput), cancellationToken);
 
             return await stepContext.NextAsync(null, cancellationToken);
@@ -48,7 +62,7 @@ public class MainDialog : ComponentDialog
 
         // Use the text provided in FinalStepAsync or the default if it is the first time.
         var messageText = stepContext.Options?.ToString() ??
-                          "What can I help you with today?\nSay something like \"I need a room for 4 people.\"";
+                          "What can I help you with today?\n\nSay something like **\"I need a room for 4 people.\"** or **\"help\"** to get further hints.";
         var promptMessage = MessageFactory.Text(messageText, messageText, InputHints.ExpectingInput);
         return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = promptMessage },
             cancellationToken);
@@ -58,42 +72,48 @@ public class MainDialog : ComponentDialog
         CancellationToken cancellationToken)
     {
         if (!_recognizer.IsConfigured)
-            // LUIS is not configured, we just run the BookingDialog path with an empty BookingDetailsInstance.
+            // CLU is not configured, we just run the BookingDialog path with an empty BookingDetailsInstance.
             //return await stepContext.BeginDialogAsync(nameof(BookingDialog), new BookingDetails(), cancellationToken);
-            Logger.LogError("LUIS Configuration is either not working or not properly set!");
+            _logger.LogError("CLU Configuration is either not working or not properly set!");
 
-        // Call LUIS and gather any potential booking details. (Note the TurnContext has the response to the prompt.)
-        //var luisResult = await _recognizer.RecognizeAsync<FlightBooking>(stepContext.Context, cancellationToken);
-        var luisResult = await _recognizer.RecognizeAsync<HotelBotResult>(stepContext.Context, cancellationToken);
+        // Call CLU and gather any potential booking details. (Note the TurnContext has the response to the prompt.)
+        var cluResult = await _recognizer.RecognizeAsync<HotelBooking>(stepContext.Context, cancellationToken);
 
-        switch (luisResult.TopIntent().intent)
+        switch (cluResult.GetTopIntent().intent)
         {
-            case HotelBotResult.Intent.Booking:
+            case HotelBooking.Intent.Booking:
 
-                HotelBotResult._Entities.BookingRequestClass? request  = null;
-                
-                if(luisResult?.Entities?.BookingRequest is not null)
-                    request = luisResult.Entities.BookingRequest.FirstOrDefault();
+                var personString = cluResult.Entities.GetAdults;
 
-                var bookingDetails = new BookingDetails(request);
-                
-                // Run the BookingDialog giving it whatever details we have from the LUIS call, it will fill out the remainder.
-                var result =  await stepContext.BeginDialogAsync(nameof(RoomBookingDialog), bookingDetails, cancellationToken);
-                
+                var regEx = NumberRegex();
+                var match = regEx.Match(personString);
+
+                var personCount = int.Parse(match.Groups[0].Value);
+
+                var bookingDetails = new BookingDetails(personCount);
+
+                // Run the BookingDialog giving it whatever details we have from the CLU call, it will fill out the remainder.
+                var result =
+                    await stepContext.BeginDialogAsync(nameof(RoomBookingDialog), bookingDetails, cancellationToken);
+
                 return result;
 
-            case HotelBotResult.Intent.Utilities_Help:
-                // We haven't implemented the GetWeatherDialog so we just display a TO-DO message.
-                var getWeatherMessageText = "TODO: output some helpfull messages";
-                var getWeatherMessage = MessageFactory.Text(getWeatherMessageText, getWeatherMessageText,
-                    InputHints.IgnoringInput);
-                await stepContext.Context.SendActivityAsync(getWeatherMessage, cancellationToken);
+            case HotelBooking.Intent.Help:
+                // Show the general help message to give the user some hints
+                var helpMessage = MessageFactory.Text(HelpMessage, HelpMessage, InputHints.ExpectingInput);
+                await stepContext.Context.SendActivityAsync(helpMessage, cancellationToken);
+                break;
+
+            case HotelBooking.Intent.HotelQuestion:
+                // Show the general help message to give the user some hints
+                var answerMessage = MessageFactory.Text(QuestionMessage, QuestionMessage, InputHints.ExpectingInput);
+                await stepContext.Context.SendActivityAsync(answerMessage, cancellationToken);
                 break;
 
             default:
                 // Catch all for unhandled intents
                 var didntUnderstandMessageText =
-                    $"Sorry, I didn't get that. Please try asking in a different way (intent was {luisResult.TopIntent().intent})";
+                    $"Sorry, I didn't get that. Please try asking in a different way (intent was {cluResult.GetTopIntent().intent})";
                 var didntUnderstandMessage = MessageFactory.Text(didntUnderstandMessageText, didntUnderstandMessageText,
                     InputHints.IgnoringInput);
                 await stepContext.Context.SendActivityAsync(didntUnderstandMessage, cancellationToken);
@@ -103,52 +123,25 @@ public class MainDialog : ComponentDialog
         return await stepContext.NextAsync(null, cancellationToken);
     }
 
-    // Shows a warning if the requested From or To cities are recognized as entities but they are not in the Airport entity list.
-    // In some cases LUIS will recognize the From and To composite entities as a valid cities but the From and To Airport values
-    // will be empty if those entity values can't be mapped to a canonical item in the Airport.
-    /*private static async Task ShowWarningForUnsupportedCities(ITurnContext context, FlightBooking luisResult, CancellationToken cancellationToken)
-    {
-        var unsupportedCities = new List<string>();
-
-        var fromEntities = luisResult.FromEntities;
-        if (!string.IsNullOrEmpty(fromEntities.From) && string.IsNullOrEmpty(fromEntities.Airport))
-        {
-            unsupportedCities.Add(fromEntities.From);
-        }
-
-        var toEntities = luisResult.ToEntities;
-        if (!string.IsNullOrEmpty(toEntities.To) && string.IsNullOrEmpty(toEntities.Airport))
-        {
-            unsupportedCities.Add(toEntities.To);
-        }
-
-        if (unsupportedCities.Any())
-        {
-            var messageText = $"Sorry but the following airports are not supported: {string.Join(',', unsupportedCities)}";
-            var message = MessageFactory.Text(messageText, messageText, InputHints.IgnoringInput);
-            await context.SendActivityAsync(message, cancellationToken);
-        }
-    }
-
-    private async Task<DialogTurnResult> FinalStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+    private async Task<DialogTurnResult> FinalStepAsync(WaterfallStepContext stepContext,
+        CancellationToken cancellationToken)
     {
         // If the child dialog ("BookingDialog") was cancelled, the user failed to confirm or if the intent wasn't BookFlight
         // the Result here will be null.
         if (stepContext.Result is BookingDetails result)
         {
             // Now we have all the booking details call the booking service.
-
             // If the call to the booking service was successful tell the user.
+            var messageText = $"Thank you for your booking!{ControlChars.NewLine}" +
+                              $"A request is placed in our system and after a short check from an service desk employee a quote will be send to you for confirmation.{ControlChars.NewLine}" +
+                              $"Your reservation is valid for 7 days and you can always call us if something is wrong or needs to be changed.{ControlChars.NewLine}" +
+                              $"Thank you for using our chatbot service and we are looking forward to welcome you in our hotel!";
 
-            var timeProperty = new TimexProperty(result.TravelDate);
-            var travelDateMsg = timeProperty.ToNaturalLanguage(DateTime.Now);
-            var messageText = $"I have you booked to {result.Destination} from {result.Origin} on {travelDateMsg}";
             var message = MessageFactory.Text(messageText, messageText, InputHints.IgnoringInput);
             await stepContext.Context.SendActivityAsync(message, cancellationToken);
         }
 
         // Restart the main dialog with a different message the second time around
-        var promptMessage = "What else can I do for you?";
-        return await stepContext.ReplaceDialogAsync(InitialDialogId, promptMessage, cancellationToken);
-    }*/
+        return await stepContext.ReplaceDialogAsync(InitialDialogId, PromptMessage, cancellationToken);
+    }
 }
